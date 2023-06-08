@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <time.h>
 
-#include "visualize.h"
+#include "visualise.h"
 
 const char _v_free = ' ', _v_tile = '#', _v_first_agant = 'a', _v_first_tile = 'A', _v_tmp = '.';
 
@@ -43,7 +43,7 @@ visualize_grid* _v_grid_init(uint8_t size_x, uint8_t size_y) {
     
     new_grid->data = (char**) malloc(size_x * sizeof(char*));
     for (uint8_t x = 0; x < size_x; x++) {
-        new_grid->data[x] = (char*)malloc(size_y * sizeof(char));
+        new_grid->data[x] = (char*) malloc(size_y * sizeof(char));
         for (uint8_t y = 0; y < size_y; y++) {
             new_grid->data[x][y] = _v_free;
         }
@@ -97,7 +97,9 @@ visualize_grid* v_read_grid(char* input_file) {
     int size_x = 0, size_y;
 
     //* check for size_x
-    for(char c; (c = fgetc(fp)) != '\n' && c != EOF; size_x++);
+    for(char c; (c = fgetc(fp)) != '\n' && c != EOF; size_x++) {
+        if(c == '-' || c == '|') size_x--;
+    }
     
     size_y = 1;
     for(char c; (c = fgetc(fp)) != EOF;) {

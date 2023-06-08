@@ -3,12 +3,12 @@
 #include <stdlib.h>
 #include <time.h>
 
-#include "visualize.h"
+#include "visualise.h"
 
 
 int main() {
-    // visualize_grid* grid = v_generate_grid(7, 7, 100);
-    visualize_grid* grid = v_read_grid("./maps/map_2");
+    // visualize_grid* grid = v_generate_grid(7, 7, 10);
+    visualize_grid* grid = v_read_grid("./maps/map_4");
     
     printf("drawng the map..\n");
     if(grid == NULL) return 1;
