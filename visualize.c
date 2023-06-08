@@ -5,7 +5,7 @@
 
 #include "visualize.h"
 
-const char _v_free = ' ', _v_tile = '#', _v_first_agant = 'a', _v_first_tile = 'A', _v_tmp = 'c';
+const char _v_free = ' ', _v_tile = '#', _v_first_agant = 'a', _v_first_tile = 'A', _v_tmp = '.';
 
 
 void v_draw(visualize_grid* grid) {
@@ -36,18 +36,7 @@ void v_draw(visualize_grid* grid) {
 };
 
 
-visualize_grid* v_generate_grid(uint8_t size_x, uint8_t size_y, uint8_t n_tiles) {
-    if(size_x == 0 || size_y == 0) return NULL;
-
-    if(size_x * size_y <=n_tiles) {
-        printf("Error! Number of tiles must be compatable with the space given.\n");
-        return NULL;;
-    }
-
-    //* Seed the random number generator
-    srand(time(NULL));
-
-
+visualize_grid* _v_grid_init(uint8_t size_x, uint8_t size_y) {
     visualize_grid* new_grid = (visualize_grid*) calloc(1, sizeof(visualize_grid));
     new_grid->size_x = size_x;
     new_grid->size_y = size_y;
@@ -59,6 +48,23 @@ visualize_grid* v_generate_grid(uint8_t size_x, uint8_t size_y, uint8_t n_tiles)
             new_grid->data[x][y] = _v_free;
         }
     }
+
+    return new_grid;
+}
+
+
+visualize_grid* v_generate_grid(uint8_t size_x, uint8_t size_y, uint8_t n_tiles) {
+    if(size_x == 0 || size_y == 0) return NULL;
+
+    if(size_x * size_y <=n_tiles) {
+        printf("Error! Number of tiles must be compatable with the space given.\n");
+        return NULL;;
+    }
+
+    //* Seed the random number generator
+    srand(time(NULL));
+
+    visualize_grid* new_grid = _v_grid_init(size_x, size_y);
 
     //* Fill the grid with tiles
     for (uint8_t i = 0; i < n_tiles; i++) {
@@ -77,20 +83,36 @@ void v_free_grid(visualize_grid* grid) {
     free(grid);
 }
 
+
 visualize_grid* v_read_grid(char* input_file) {
     FILE* fp;
     fp = fopen(input_file, "r");
     
     if (fp == NULL) {
-        puts("Error! Can't open the input file.");
+        puts("Error! Can't open the input file.\n");
         return NULL;
     }
     
-    visualize_grid* grid = (visualize_grid*) malloc(sizeof(visualize_grid));
+
+    int size_x = 0, size_y;
+
+    //* check for size_x
+    for(char c; (c = fgetc(fp)) != '\n' && c != EOF; size_x++);
+    
+    size_y = 1;
+    for(char c; (c = fgetc(fp)) != EOF;) {
+        if(c == '\n') (size_y)++;
+    };
+
+    visualize_grid* grid = _v_grid_init(size_x, size_y);
     if (grid == NULL) {
         fclose(fp);
         return NULL;
     }
+
+    //* go to the start of the file
+    fseek(fp, 0, SEEK_SET);
+
     
     char curr_char;
     int x = 0, y = 0;
@@ -102,30 +124,33 @@ visualize_grid* v_read_grid(char* input_file) {
             } else {
                 fclose(fp);
                 free(grid);
-                printf("Incorrect file format. All lines must be the same length.");
+                printf("Incorrect file format! All lines must be the same length.\n");
                 return NULL;
             }
         } else if (curr_char == _v_tile || curr_char == _v_free) {
-            if (x < grid->size_x && y < grid->size_y) {
+            if (x < grid->size_x) {
                 grid->data[x][y] = curr_char;
                 x++;
             } else {
                 fclose(fp);
                 free(grid);
+                printf("Incorrect file format! Catched a symbol outside of given size. All lines must be the same length.\n");
                 return NULL;
             }
         } else if (curr_char == _v_tmp) {
-            if (x < grid->size_x && y < grid->size_y) {
+            if (x < grid->size_x) {
                 grid->data[x][y] = _v_free;
                 x++;
             } else {
                 fclose(fp);
                 free(grid);
+                printf("Incorrect file format! Catched a symbol outside of given size. All lines must be the same length.\n");
                 return NULL;
             }
         } else {
             fclose(fp);
             free(grid);
+            printf("Incorrect file format. Catched an invalid symbol \"%c\".\n", curr_char);
             return NULL;
         }
     }
@@ -142,7 +167,6 @@ void _v_add_tile(visualize_grid* grid) {
     do {
         x = _v_random(grid->size_x);
         y = _v_random(grid->size_y);
-        // // printf("x: %d (%d), y: %d\n", x, y);
     } while(!_v_is_space_available_for_tile(grid, x, y));
 
     grid->data[x][y] = _v_tile;
