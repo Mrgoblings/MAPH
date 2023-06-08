@@ -76,20 +76,59 @@ visualize_grid* v_read_grid(char* input_file) {
     FILE* fp;
     fp = fopen(input_file, "r");
     
-    if(fp == NULL) {
-        puts("Error! Cant open inputted file.");
+    if (fp == NULL) {
+        puts("Error! Can't open the input file.");
+        return NULL;
+    }
+    
+    visualize_grid* grid = (visualize_grid*) malloc(sizeof(visualize_grid));
+    if (grid == NULL) {
+        fclose(fp);
         return NULL;
     }
     
     char curr_char;
-    while(fscanf(fp, "%c", &curr_char)) { //TODO: the pseudo code
-        if(curr_char == '\n') x=0, y++; -> check if prev_x = size_x
-        else if(curr_char == _v_tile || curr_char == _v_free) grid[x][y] = curr_char;
-        else if(curr_char == _v_tmp) grid[x][y] = _v_free;
-        else return NULL
-    };
+    int x = 0, y = 0;
+    while (fscanf(fp, "%c", &curr_char) != EOF) {
+        if (curr_char == '\n') {
+            if (x == grid->size_x) {
+                x = 0;
+                y++;
+            } else {
+                fclose(fp);
+                free(grid);
+                printf("Incorrect file format. All lines must be the same length.");
+                return NULL;
+            }
+        } else if (curr_char == _v_tile || curr_char == _v_free) {
+            if (x < grid->size_x && y < grid->size_y) {
+                grid->data[x][y] = curr_char;
+                x++;
+            } else {
+                fclose(fp);
+                free(grid);
+                return NULL;
+            }
+        } else if (curr_char == _v_tmp) {
+            if (x < grid->size_x && y < grid->size_y) {
+                grid->data[x][y] = _v_free;
+                x++;
+            } else {
+                fclose(fp);
+                free(grid);
+                return NULL;
+            }
+        } else {
+            fclose(fp);
+            free(grid);
+            return NULL;
+        }
+    }
     
-};
+    fclose(fp);
+    return grid;
+}
+
 
 
 void _v_add_tile(visualize_grid* grid) {
