@@ -39,6 +39,11 @@ void v_draw(visualize_grid* grid) {
 visualize_grid* v_generate_grid(uint8_t size_x, uint8_t size_y, uint8_t n_tiles) {
     if(size_x == 0 || size_y == 0) return NULL;
 
+    if(size_x * size_y <=n_tiles) {
+        printf("Error! Number of tiles must be compatable with the space given.\n");
+        return NULL;;
+    }
+
     //* Seed the random number generator
     srand(time(NULL));
 
