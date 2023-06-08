@@ -77,6 +77,25 @@ void v_free_grid(visualize_grid* grid) {
     free(grid);
 }
 
+visualize_grid* v_read_grid(char* input_file) {
+    FILE* fp;
+    fp = fopen(input_file, "r");
+    
+    if(fp == NULL) {
+        puts("Error! Cant open inputted file.");
+        return NULL;
+    }
+    
+    char curr_char;
+    while(fscanf(fp, "%c", &curr_char)) { //TODO: the pseudo code
+        if(curr_char == '\n') x=0, y++; -> check if prev_x = size_x
+        else if(curr_char == _v_tile || curr_char == _v_free) grid[x][y] = curr_char;
+        else if(curr_char == _v_tmp) grid[x][y] = _v_free;
+        else return NULL
+    };
+    
+};
+
 
 void _v_add_tile(visualize_grid* grid) {
     uint8_t x, y; 
