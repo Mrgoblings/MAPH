@@ -2,3 +2,4 @@ a.out
 *.exe
 out
 *.o
+.vscode/
