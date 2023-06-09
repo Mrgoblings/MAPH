@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <string.h>
 
 #include "visualize.h"
 #include "priority_queue/priority_queue.h"
@@ -10,24 +11,12 @@
 int main() {
     //* Seed the random number generator
     srand(time(NULL));
-    
-    Visualize_grid* grid;
-    // // visualize_grid* grid = v_read_grid("./maps/map_4");
-    
-    // if(grid == NULL) return 1;
 
-    // v_add_agents(grid, 5);
-
-    // v_draw(grid);
-    // while(getc(stdin) == '\n') {
-    //     v_solve_grid_one_step(grid);
-    //     v_draw(grid);
-    // }
-
-    // // printf("size_x = %d\n", grid->size_x);
-    // // printf("size_y = %d\n", grid->size_y);
+    Visualize_grid* grid = NULL;
 
     int choice;
+    uint8_t size_x, size_y, n_tiles;
+    char input[100];
     while (1) {
         printf("\nMenu\n");
         printf("1. Generate a map\n");
@@ -41,22 +30,47 @@ int main() {
 
         switch (choice) {
             case 1:
-                grid = v_generate_grid(17, 17, 10);
+                printf("Enter size_X of the grid: ");
+                scanf("%hhu", &size_x);
+
+                printf("Enter size_Y of the grid: ");
+                scanf("%hhu", &size_y);
+
+                printf("Enter number of tiles for the grid: ");
+                scanf("%hhu", &n_tiles);
+
+                grid = v_generate_grid(size_x, size_y, n_tiles);
                 break;
             case 2:
-                grid = v_read_grid("./maps/map_4");
+                // printf("Enter file name and place : ");
+                // fgets(input, 100, stdin);
+                // input[strlen(input) - 1] = '\0';
+                grid = v_read_grid("./maps/map_0");
                 break;
             case 3:
-                v_solve_grid_one_step(grid);
+                if (grid != NULL) {
+                    v_solve_grid_one_step(grid);
+                } else {
+                    printf("No grid available. Please generate or load a map.\n");
+                }
                 break;
             case 4:
-                v_add_tile(grid);
+                if (grid != NULL) {
+                    v_add_tile(grid);
+                } else {
+                    printf("No grid available. Please generate or load a map.\n");
+                }
                 break;
             case 5:
-                v_add_agent(grid);
+                if (grid != NULL) {
+                    v_add_agent(grid);
+                } else {
+                    printf("No grid available. Please generate or load a map.\n");
+                }
                 break;
             case 6:
                 printf("Exiting...\n");
+                v_free_grid(grid);
                 exit(0);
             default:
                 printf("Invalid choice. Please enter a valid option.\n");
@@ -64,6 +78,6 @@ int main() {
         v_draw(grid);
     }
 
-    v_free_grid(grid);
     return 0;
 }
+
