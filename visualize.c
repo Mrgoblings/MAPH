@@ -249,6 +249,7 @@ void _v_init_agent(Visualize_grid* grid, Agent* agent) {
                 x--;
                 break;
         }
+        printf("x-%u y-%u\n",x,y);
         if (grid->data[x][y] == grid->data[agent->dest_x][agent->dest_y])
             break;
     }
