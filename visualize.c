@@ -220,49 +220,65 @@ void _v_init_agent(Visualize_grid* grid, Agent* agent) {
     //* init the path_weights
     Cell path_weights[grid->size_x][grid->size_y];
 
-    for(uint8_t x = 0; x < grid->size_x; x++) {
-        for(uint8_t y = 0; y < grid->size_y; y++) {
-            manhattan[x][y] = _v_heuristic(x, y, agent->dest_x, agent->dest_y);    
-            if(grid->data[x][y] == _v_tile || grid->data[x][y] >= 'A' && grid->data[x][y] <= 'Z') manhattan[x][y] = 255;
+    for (uint8_t x = 0; x < grid->size_x; x++) {
+        for (uint8_t y = 0; y < grid->size_y; y++) {
+            manhattan[x][y] = _v_heuristic(x, y, agent->dest_x, agent->dest_y);
+            if (grid->data[x][y] == _v_tile || (grid->data[x][y] >= 'A' && grid->data[x][y] <= 'Z'))
+                manhattan[x][y] = 255;
 
             path_weights[x][y].is_visited = 0;
         }
     }
 
-
-    //*setup the path_weights
+    //* setup the path_weights
     _v_setup_cells(grid, path_weights, manhattan, agent, 0, 0);
 
     agent->n_cells = 0;
-    for(uint8_t x = agent->dest_x, y = agent->dest_y;
-            x != agent->x || y != agent->y; 
-            (agent->n_cells)++
-    ) {
-    printf("1, x=%d, y=%d\n", x, y);
-        switch(path_weights[x][y].came_from) {
-            case 1: y++; break;
-            case 2: x++; break;
-            case 3: y--; break;
-            case 4: x--; break;
+    for (uint8_t x = agent->dest_x, y = agent->dest_y; x != agent->x || y != agent->y; (agent->n_cells)++) {
+        switch (path_weights[x][y].came_from) {
+            case 1:
+                y++;
+                break;
+            case 2:
+                x++;
+                break;
+            case 3:
+                y--;
+                break;
+            case 4:
+                x--;
+                break;
         }
-        if(grid->data[x][y] == grid->data[agent->dest_x][agent->dest_y]) break;
+        if (grid->data[x][y] == grid->data[agent->dest_x][agent->dest_y])
+            break;
     }
 
     agent->path_directions = malloc(agent->n_cells * sizeof(uint8_t));
 
-    for(uint8_t x = agent->dest_x, y = agent->dest_y, i = 0;
-            x != agent->x || y != agent->y; 
-            i++
-    ) {
-        switch(path_weights[x][y].came_from) {
-            case 1: y++; agent->path_directions[i] = 3; break;
-            case 2: x++; agent->path_directions[i] = 4; break;
-            case 3: y--; agent->path_directions[i] = 1; break;
-            case 4: x--; agent->path_directions[i] = 2; break;
+    for (uint8_t x = agent->dest_x, y = agent->dest_y, i = 0; x != agent->x || y != agent->y; i++) {
+        switch (path_weights[x][y].came_from) {
+            case 1:
+                y++;
+                agent->path_directions[i] = 3;
+                break;
+            case 2:
+                x++;
+                agent->path_directions[i] = 4;
+                break;
+            case 3:
+                y--;
+                agent->path_directions[i] = 1;
+                break;
+            case 4:
+                x--;
+                agent->path_directions[i] = 2;
+                break;
         }
-        if(grid->data[x][y] == grid->data[agent->dest_x][agent->dest_y]) break;
+        if (grid->data[x][y] == grid->data[agent->dest_x][agent->dest_y])
+            break;
     }
 }
+
 
 
 /*
@@ -327,7 +343,10 @@ int8_t v_solve_grid_one_step(Visualize_grid* grid) {
         _v_init_agent(grid, &agents[i]);
         uint8_t new_x = agents[i].x + dx[agents[i].path_directions[agents[i].n_cells]];
         uint8_t new_y = agents[i].y + dy[agents[i].path_directions[agents[i].n_cells]];;
+        printf("next expected move : %d\n", agents[i].path_directions[agents[i].n_cells]);
+        printf("new_x,y -> %d %d\n", new_x, new_y);
         (agents[i].n_cells)--;
+
 
         //* check if the new position is valid and not occupied by an obstacle or another agent
         if (_v_is_valid_cell(new_x, new_y, grid) && grid->data[new_x][new_y] != _v_tile) {
@@ -337,6 +356,9 @@ int8_t v_solve_grid_one_step(Visualize_grid* grid) {
                 grid->data[new_x][new_y] = 'a' + i;
                 agents[i].x = new_x;
                 agents[i].y = new_y;
+            } else if (new_x == agents[i].dest_x && new_y == agents[i].dest_y) {
+                    grid->data[new_x][new_y] = 'x';
+                    n_agents_left--;
             } else {
                 //* check if the agent can wait for the other agent to move
                 uint8_t otherAgentIndex = grid->data[new_x][new_y] - 'a';

@@ -11,7 +11,7 @@ int main() {
     //* Seed the random number generator
     // srand(time(NULL));
     
-    Visualize_grid* grid = v_generate_grid(12, 12, 10);
+    Visualize_grid* grid = v_generate_grid(17, 17, 10);
     // visualize_grid* grid = v_read_grid("./maps/map_4");
     
     if(grid == NULL) return 1;
