@@ -4,6 +4,7 @@
 #include <time.h>
 
 #include "visualize.h"
+#include "priority_queue/priority_queue.h"
 
 const char _v_free = ' ', _v_tmp = '.', _v_tile = '#', _v_first_agent = 'a', _v_first_destination = 'A', _v_finished_agent = 'x';
 
@@ -19,9 +20,6 @@ void v_draw(visualize_grid* grid) {
     for(int y = 0; y < grid->size_y; y++) {
         printf("|");
         for(int x = 0; x < grid->size_x; x++) {
-            // if()
-            // printf(". ");
-            // else
             printf("%c", grid->data[x][y]);
         }
         printf("|\n");
@@ -213,6 +211,64 @@ void v_add_agents(visualize_grid* grid, uint8_t n_agents) {
         v_add_agent(grid);
     }
 }
+
+int8_t v_solve_grid_one_step(visualize_grid* grid) {
+    int8_t n_agents_left = grid->n_agents;
+
+    int8_t dx[] = {-1, 0, 1, 0}; //* Delta rows for up, right, down, left
+    int8_t dy[] = {0, 1, 0, -1}; //* Delta cols for up, right, down, left
+
+    uint8_t visited[grid->size_x][grid->size_y];
+    uint8_t parent[grid->size_x][grid->size_y];
+
+    agent agents[grid->n_agents];
+
+    //* setup default values
+    for (uint8_t x = 0; x < grid->size_x; x++) {
+        for (uint8_t y = 0; y < grid->size_y; y++) {
+            visited[x][y] = 0;
+            parent[x][y] = -1;
+
+            //* get agents
+            if('a' >= grid->data[x][y] || grid->data[x][y] <= 'z') { 
+                agents[grid->data[x][y] - 'a'].x = x; 
+                agents[grid->data[x][y] - 'a'].y = y; 
+            } else if('A' >= grid->data[x][y] || grid->data[x][y] <= 'Z') { 
+                agents[grid->data[x][y] - 'A'].dest_x = x; 
+                agents[grid->data[x][y] - 'A'].dest_y = y; 
+            }
+        }
+    }
+
+
+    uint8_t min_weight, min_direction, curr_weight;
+    for(uint8_t i_a = 0; i_a < grid->n_agents; i_a++) {
+        min_weight = 0; 
+        min_direction = 0;
+        for (uint8_t direction = 0; direction < 4; direction++) {
+            int8_t new_x = agents[i_a].x + dx[direction];
+            int8_t new_y = agents[i_a].y + dy[direction];
+
+            if (new_x >= 0 && new_x < grid->size_x && new_y >= 0 && new_y < grid->size_y) {
+                curr_weight = _v_heuristic(new_x, new_y, agents[i_a].dest_x, agents[i_a].dest_y);
+
+                if (min_weight < curr_weight) {
+                    min_weight = curr_weight;
+                    min_direction = direction;
+                }
+            }
+        }
+    }
+
+    
+    return n_agents_left;
+}
+
+
+uint8_t _v_heuristic(uint8_t start_row, uint8_t start_col, uint8_t dest_row, uint8_t dest_col) {
+    return abs(start_row - dest_row) + abs(dest_col - start_col);
+}
+
 
 
 int _v_is_space_available_for_tile(visualize_grid* grid, uint8_t x, uint8_t y) {

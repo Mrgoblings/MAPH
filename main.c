@@ -4,14 +4,15 @@
 #include <time.h>
 
 #include "visualize.h"
+#include "priority_queue/priority_queue.h"
 
 
 int main() {
     //* Seed the random number generator
     srand(time(NULL));
     
-    // visualize_grid* grid = v_generate_grid(7, 7, 10);
-    visualize_grid* grid = v_read_grid("./maps/map_4");
+    visualize_grid* grid = v_generate_grid(12, 12, 10);
+    // visualize_grid* grid = v_read_grid("./maps/map_4");
     
     if(grid == NULL) return 1;
 
