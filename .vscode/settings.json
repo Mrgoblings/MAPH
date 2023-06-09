@@ -1,0 +1,6 @@
+{
+    "files.associations": {
+        "visualise.h": "c",
+        "time.h": "c"
+    }
+}

@@ -3,24 +3,26 @@
 #include <stdlib.h>
 #include <time.h>
 
-#include "visualise.h"
+#include "visualize.h"
 
-const char _v_free = ' ', _v_tile = '#', _v_first_agant = 'a', _v_first_tile = 'A', _v_tmp = '.';
-
+const char _v_free = ' ', _v_tmp = '.', _v_tile = '#', _v_first_agent = 'a', _v_first_destination = 'A', _v_finished_agent = 'x';
 
 void v_draw(visualize_grid* grid) {
     //* top line
     printf("-");
     for(int x = 0; x < grid->size_x; x++) {
-        printf("--");
+        printf("-");
     }
-    printf("--\n");
+    printf("-\n");
 
     //* draw grid data
     for(int y = 0; y < grid->size_y; y++) {
-        printf("| ");
+        printf("|");
         for(int x = 0; x < grid->size_x; x++) {
-            printf("%c ", grid->data[x][y]);
+            // if()
+            // printf(". ");
+            // else
+            printf("%c", grid->data[x][y]);
         }
         printf("|\n");
     }
@@ -28,9 +30,13 @@ void v_draw(visualize_grid* grid) {
     //* bottom line
     printf("-");
     for(int x = 0; x < grid->size_x; x++) {
-        printf("--");
+        printf("-");
     }
-    printf("--\n");
+    printf("-\n\n");
+
+    printf("(a, b, c) Agents - lowercase letters\n");
+    printf("(A, B, C) Destinations - uppercase letters\n");
+    printf("(x) an Agent who has reached his Destination\n\n");
 
     return;
 };
@@ -53,28 +59,6 @@ visualize_grid* _v_grid_init(uint8_t size_x, uint8_t size_y) {
 }
 
 
-visualize_grid* v_generate_grid(uint8_t size_x, uint8_t size_y, uint8_t n_tiles) {
-    if(size_x == 0 || size_y == 0) return NULL;
-
-    if(size_x * size_y <=n_tiles) {
-        printf("Error! Number of tiles must be compatable with the space given.\n");
-        return NULL;;
-    }
-
-    //* Seed the random number generator
-    srand(time(NULL));
-
-    visualize_grid* new_grid = _v_grid_init(size_x, size_y);
-
-    //* Fill the grid with tiles
-    for (uint8_t i = 0; i < n_tiles; i++) {
-        _v_add_tile(new_grid);
-    }
-
-    return new_grid;
-};
-
-
 void v_free_grid(visualize_grid* grid) {
     for (uint8_t x = 0; x < grid->size_x; x++) {
         free(grid->data[x]);
@@ -84,86 +68,114 @@ void v_free_grid(visualize_grid* grid) {
 }
 
 
+visualize_grid* v_generate_grid(uint8_t size_x, uint8_t size_y, uint8_t n_tiles) {
+    if(size_x == 0 || size_y == 0) return NULL;
+
+    if(size_x * size_y <=n_tiles) {
+        printf("Error! Number of tiles must be compatable with the space given.\n");
+        return NULL;;
+    }
+
+    visualize_grid* new_grid = _v_grid_init(size_x, size_y);
+
+    //* Fill the grid with tiles
+    for (uint8_t i = 0; i < n_tiles; i++) {
+        v_add_tile(new_grid);
+    }
+
+    return new_grid;
+};
+
+
+
 visualize_grid* v_read_grid(char* input_file) {
-    FILE* fp;
-    fp = fopen(input_file, "r");
-    
+    FILE* fp = fopen(input_file, "r");
+
     if (fp == NULL) {
         puts("Error! Can't open the input file.\n");
         return NULL;
     }
-    
 
-    int size_x = 0, size_y;
+    int curr_size_x = 0, max_size_x = 0, size_y = 0;
+    int has_content = 0;  
 
-    //* check for size_x
-    for(char c; (c = fgetc(fp)) != '\n' && c != EOF; size_x++) {
-        if(c == '-' || c == '|') size_x--;
+    //* Calculate curr_size_x and size_y
+    char c;
+    while ((c = fgetc(fp)) != EOF) {
+        if (c == '\n') {
+            if (has_content) {
+                size_y++;
+                if (max_size_x == 0)
+                    max_size_x = curr_size_x;
+                else if (curr_size_x != max_size_x) {
+                    fclose(fp);
+                    printf("Incorrect file format! Caught a symbol outside of the given size. All lines must be the same length. msx - %d, sx - %d\n", max_size_x, curr_size_x);
+                    return NULL;
+                }
+            }
+            curr_size_x = 0;
+            has_content = 0;  
+        } else if (c == '|' || c == '-') {
+            continue;
+        } else {
+            curr_size_x++;
+            has_content = 1;  
+        }
     }
-    
-    size_y = 1;
-    for(char c; (c = fgetc(fp)) != EOF;) {
-        if(c == '\n') (size_y)++;
-    };
 
-    visualize_grid* grid = _v_grid_init(size_x, size_y);
+    //* Handle the last line in the file
+    if (has_content) {
+        size_y++;
+        if (max_size_x == 0)
+            max_size_x = curr_size_x;
+        else if (curr_size_x != max_size_x) {
+            fclose(fp);
+            printf("Incorrect file format! Caught a symbol outside of the given size. All lines must be the same length. msx - %d, sx - %d\n", max_size_x, curr_size_x);
+            return NULL;
+        }
+    }
+
+    //* Reset the file pointer to the beginning of the file
+    fseek(fp, 0, SEEK_SET);
+
+    //* Create the grid
+    visualize_grid* grid = _v_grid_init(max_size_x, size_y);
     if (grid == NULL) {
         fclose(fp);
         return NULL;
     }
 
-    //* go to the start of the file
-    fseek(fp, 0, SEEK_SET);
-
-    
-    char curr_char;
+    //* Read the grid data from the file
     int x = 0, y = 0;
-    while (fscanf(fp, "%c", &curr_char) != EOF) {
-        if (curr_char == '\n') {
-            if (x == grid->size_x) {
+    while ((c = fgetc(fp)) != EOF) {
+        if (c == '\n') {
+            if(x != 0) {
                 x = 0;
                 y++;
-            } else {
-                fclose(fp);
-                free(grid);
-                printf("Incorrect file format! All lines must be the same length.\n");
-                return NULL;
             }
-        } else if (curr_char == _v_tile || curr_char == _v_free) {
-            if (x < grid->size_x) {
-                grid->data[x][y] = curr_char;
+        } else if (c == '|' || c == '-') {
+            continue;
+        } else if (c == _v_tile || c == _v_free || c == _v_tmp) {
+            if (x < grid->size_x && y < grid->size_y) {
+                if(c == _v_tmp) grid->data[x][y] = _v_free;
+                else grid->data[x][y] = c;
                 x++;
-            } else {
-                fclose(fp);
-                free(grid);
-                printf("Incorrect file format! Catched a symbol outside of given size. All lines must be the same length.\n");
-                return NULL;
-            }
-        } else if (curr_char == _v_tmp) {
-            if (x < grid->size_x) {
-                grid->data[x][y] = _v_free;
-                x++;
-            } else {
-                fclose(fp);
-                free(grid);
-                printf("Incorrect file format! Catched a symbol outside of given size. All lines must be the same length.\n");
-                return NULL;
             }
         } else {
             fclose(fp);
-            free(grid);
-            printf("Incorrect file format. Catched an invalid symbol \"%c\".\n", curr_char);
+            v_free_grid(grid);
+            printf("Incorrect file format. Caught an invalid symbol '%c'.\n", c);
             return NULL;
         }
     }
-    
+
     fclose(fp);
     return grid;
 }
 
 
 
-void _v_add_tile(visualize_grid* grid) {
+void v_add_tile(visualize_grid* grid) {
     uint8_t x, y; 
 
     do {
@@ -173,6 +185,34 @@ void _v_add_tile(visualize_grid* grid) {
 
     grid->data[x][y] = _v_tile;
 };
+
+
+void v_add_agent(visualize_grid* grid) {
+    uint8_t x, y; 
+
+    //* agent
+    do {
+        x = _v_random(grid->size_x);
+        y = _v_random(grid->size_y);
+    } while(grid->data[x][y] != _v_free);
+
+    grid->data[x][y] = _v_first_agent + (grid->n_agents);
+
+    //* destination
+    do {
+        x = _v_random(grid->size_x);
+        y = _v_random(grid->size_y);
+    } while(grid->data[x][y] != _v_free);
+
+    grid->data[x][y] = _v_first_destination + (grid->n_agents)++;
+};
+
+
+void v_add_agents(visualize_grid* grid, uint8_t n_agents) {
+    for(int i = 0; i < n_agents; i++){
+        v_add_agent(grid);
+    }
+}
 
 
 int _v_is_space_available_for_tile(visualize_grid* grid, uint8_t x, uint8_t y) {
@@ -186,9 +226,8 @@ int _v_is_space_available_for_tile(visualize_grid* grid, uint8_t x, uint8_t y) {
 };
 
 
+//* quality of life function
 uint8_t _v_random(uint8_t max) {
-    
-    //* Generate a random number within the specified range
     return rand() % max;
 }
 
