@@ -8,7 +8,7 @@
 
 const char _v_free = ' ', _v_tmp = '.', _v_tile = '#', _v_first_agent = 'a', _v_first_destination = 'A', _v_finished_agent = 'x';
 
-void v_draw(visualize_grid* grid) {
+void v_draw(Visualize_grid* grid) {
     //* top line
     printf("-");
     for(int x = 0; x < grid->size_x; x++) {
@@ -40,8 +40,8 @@ void v_draw(visualize_grid* grid) {
 };
 
 
-visualize_grid* _v_grid_init(uint8_t size_x, uint8_t size_y) {
-    visualize_grid* new_grid = (visualize_grid*) calloc(1, sizeof(visualize_grid));
+Visualize_grid* _v_grid_init(uint8_t size_x, uint8_t size_y) {
+    Visualize_grid* new_grid = (Visualize_grid*) calloc(1, sizeof(Visualize_grid));
     new_grid->size_x = size_x;
     new_grid->size_y = size_y;
     
@@ -57,7 +57,7 @@ visualize_grid* _v_grid_init(uint8_t size_x, uint8_t size_y) {
 }
 
 
-void v_free_grid(visualize_grid* grid) {
+void v_free_grid(Visualize_grid* grid) {
     for (uint8_t x = 0; x < grid->size_x; x++) {
         free(grid->data[x]);
     }
@@ -66,7 +66,7 @@ void v_free_grid(visualize_grid* grid) {
 }
 
 
-visualize_grid* v_generate_grid(uint8_t size_x, uint8_t size_y, uint8_t n_tiles) {
+Visualize_grid* v_generate_grid(uint8_t size_x, uint8_t size_y, uint8_t n_tiles) {
     if(size_x == 0 || size_y == 0) return NULL;
 
     if(size_x * size_y <=n_tiles) {
@@ -74,7 +74,7 @@ visualize_grid* v_generate_grid(uint8_t size_x, uint8_t size_y, uint8_t n_tiles)
         return NULL;;
     }
 
-    visualize_grid* new_grid = _v_grid_init(size_x, size_y);
+    Visualize_grid* new_grid = _v_grid_init(size_x, size_y);
 
     //* Fill the grid with tiles
     for (uint8_t i = 0; i < n_tiles; i++) {
@@ -86,7 +86,7 @@ visualize_grid* v_generate_grid(uint8_t size_x, uint8_t size_y, uint8_t n_tiles)
 
 
 
-visualize_grid* v_read_grid(char* input_file) {
+Visualize_grid* v_read_grid(char* input_file) {
     FILE* fp = fopen(input_file, "r");
 
     if (fp == NULL) {
@@ -137,7 +137,7 @@ visualize_grid* v_read_grid(char* input_file) {
     fseek(fp, 0, SEEK_SET);
 
     //* Create the grid
-    visualize_grid* grid = _v_grid_init(max_size_x, size_y);
+    Visualize_grid* grid = _v_grid_init(max_size_x, size_y);
     if (grid == NULL) {
         fclose(fp);
         return NULL;
@@ -173,7 +173,7 @@ visualize_grid* v_read_grid(char* input_file) {
 
 
 
-void v_add_tile(visualize_grid* grid) {
+void v_add_tile(Visualize_grid* grid) {
     uint8_t x, y; 
 
     do {
@@ -185,7 +185,7 @@ void v_add_tile(visualize_grid* grid) {
 };
 
 
-void v_add_agent(visualize_grid* grid) {
+void v_add_agent(Visualize_grid* grid) {
     uint8_t x, y; 
 
     //* agent
@@ -206,75 +206,171 @@ void v_add_agent(visualize_grid* grid) {
 };
 
 
-void v_add_agents(visualize_grid* grid, uint8_t n_agents) {
+void v_add_agents(Visualize_grid* grid, uint8_t n_agents) {
     for(int i = 0; i < n_agents; i++){
         v_add_agent(grid);
     }
 }
 
-int8_t v_solve_grid_one_step(visualize_grid* grid) {
-    int8_t n_agents_left = grid->n_agents;
 
-    int8_t dx[] = {-1, 0, 1, 0}; //* Delta rows for up, right, down, left
-    int8_t dy[] = {0, 1, 0, -1}; //* Delta cols for up, right, down, left
+void _v_init_agent(Visualize_grid* grid, Agent* agent) {
+    //* set up the manhattan layout to destination
+    uint8_t manhattan[grid->size_x][grid->size_y];
 
-    uint8_t visited[grid->size_x][grid->size_y];
-    uint8_t parent[grid->size_x][grid->size_y];
+    //* init the path_weights
+    Cell path_weights[grid->size_x][grid->size_y];
 
-    agent agents[grid->n_agents];
+    for(uint8_t x = 0; x < grid->size_x; x++) {
+        for(uint8_t y = 0; y < grid->size_y; y++) {
+            manhattan[x][y] = _v_heuristic(x, y, agent->dest_x, agent->dest_y);    
+            if(grid->data[x][y] == _v_tile || grid->data[x][y] >= 'A' && grid->data[x][y] <= 'Z') manhattan[x][y] = 255;
 
-    //* setup default values
-    for (uint8_t x = 0; x < grid->size_x; x++) {
-        for (uint8_t y = 0; y < grid->size_y; y++) {
-            visited[x][y] = 0;
-            parent[x][y] = -1;
-
-            //* get agents
-            if('a' >= grid->data[x][y] || grid->data[x][y] <= 'z') { 
-                agents[grid->data[x][y] - 'a'].x = x; 
-                agents[grid->data[x][y] - 'a'].y = y; 
-            } else if('A' >= grid->data[x][y] || grid->data[x][y] <= 'Z') { 
-                agents[grid->data[x][y] - 'A'].dest_x = x; 
-                agents[grid->data[x][y] - 'A'].dest_y = y; 
-            }
+            path_weights[x][y].is_visited = 0;
         }
     }
 
 
-    uint8_t min_weight, min_direction, curr_weight;
-    for(uint8_t i_a = 0; i_a < grid->n_agents; i_a++) {
-        min_weight = 0; 
-        min_direction = 0;
-        for (uint8_t direction = 0; direction < 4; direction++) {
-            int8_t new_x = agents[i_a].x + dx[direction];
-            int8_t new_y = agents[i_a].y + dy[direction];
+    //*setup the path_weights
+    _v_setup_cells(grid, path_weights, manhattan, agent, 0, 0);
 
-            if (new_x >= 0 && new_x < grid->size_x && new_y >= 0 && new_y < grid->size_y) {
-                curr_weight = _v_heuristic(new_x, new_y, agents[i_a].dest_x, agents[i_a].dest_y);
+    agent->n_cells = 0;
+    for(uint8_t x = agent->dest_x, y = agent->dest_y;
+            x != agent->x || y != agent->y; 
+            (agent->n_cells)++
+    ) {
+    printf("1, x=%d, y=%d\n", x, y);
+        switch(path_weights[x][y].came_from) {
+            case 1: y++; break;
+            case 2: x++; break;
+            case 3: y--; break;
+            case 4: x--; break;
+        }
+        if(grid->data[x][y] == grid->data[agent->dest_x][agent->dest_y]) break;
+    }
 
-                if (min_weight < curr_weight) {
-                    min_weight = curr_weight;
-                    min_direction = direction;
+    agent->path_directions = malloc(agent->n_cells * sizeof(uint8_t));
+
+    for(uint8_t x = agent->dest_x, y = agent->dest_y, i = 0;
+            x != agent->x || y != agent->y; 
+            i++
+    ) {
+        switch(path_weights[x][y].came_from) {
+            case 1: y++; agent->path_directions[i] = 3; break;
+            case 2: x++; agent->path_directions[i] = 4; break;
+            case 3: y--; agent->path_directions[i] = 1; break;
+            case 4: x--; agent->path_directions[i] = 2; break;
+        }
+        if(grid->data[x][y] == grid->data[agent->dest_x][agent->dest_y]) break;
+    }
+}
+
+
+/*
+    * no direction available - 0;
+    * up - 1;
+    * right - 2;
+    * down - 3;
+    * left - 4;
+*/
+uint8_t _v_setup_cells(Visualize_grid* grid, Cell path_weights[grid->size_x][grid->size_y], uint8_t manhattan[grid->size_x][grid->size_y], Agent* agent, int8_t x, int8_t y) {
+    if(path_weights[x][y].is_visited == 1 || !_v_is_valid_cell(x, y, grid)) return UINT8_MAX;
+    if(agent->dest_x == x && agent->dest_y == y) return 0; //* goal
+    if(_v_is_cell_occupied(grid, x, y)) return UINT8_MAX;
+    path_weights[x][y].is_visited = 1;
+    Cell best_cell = {0, 0, 1};
+    uint8_t curr_weight;
+
+    //* prime the cell
+    best_cell.weight = _v_setup_cells(grid, path_weights, manhattan, agent, x, y + 1) + manhattan[x][y];
+    best_cell.came_from = 1;
+
+    if(  (curr_weight = _v_setup_cells(grid, path_weights, manhattan, agent, x + 1, y) + manhattan[x][y])  <  best_cell.weight  ) {
+        best_cell.weight = curr_weight;
+        best_cell.came_from = 2;
+    }
+    if(  (curr_weight = _v_setup_cells(grid, path_weights, manhattan, agent, x, y - 1) + manhattan[x][y])  <  best_cell.weight  ) {
+        best_cell.weight = curr_weight;
+        best_cell.came_from = 3;
+    }
+    if(  (curr_weight = _v_setup_cells(grid, path_weights, manhattan, agent, x - 1, y) + manhattan[x][y])  <  best_cell.weight  ) {
+        best_cell.weight = curr_weight;
+        best_cell.came_from = 4;
+    }
+
+    path_weights[x][y] = best_cell;
+    return best_cell.weight;
+}
+
+
+int8_t v_solve_grid_one_step(Visualize_grid* grid) {
+    int8_t n_agents_left = grid->n_agents;
+    uint8_t dx[] = {0, -1, 0, 1, 0};  // Delta rows for up, right, down, left
+    uint8_t dy[] = {0, 0, 1, 0, -1};  // Delta cols for up, right, down, left
+
+    Agent agents[grid->n_agents];
+
+    //* setup agents' positions and destinations
+    for (uint8_t x = 0; x < grid->size_x; x++) {
+        for (uint8_t y = 0; y < grid->size_y; y++) {
+            if (grid->data[x][y] >= 'a' && grid->data[x][y] <= 'z') {
+                agents[grid->data[x][y] - 'a'].x = x;
+                agents[grid->data[x][y] - 'a'].y = y;
+            } else if (grid->data[x][y] >= 'A' && grid->data[x][y] <= 'Z') {
+                agents[grid->data[x][y] - 'A'].dest_x = x;
+                agents[grid->data[x][y] - 'A'].dest_y = y;
+            }
+        }
+    }
+
+    //* perform one step for each agent
+    for (uint8_t i = 0; i < grid->n_agents; i++) {
+        _v_init_agent(grid, &agents[i]);
+        uint8_t new_x = agents[i].x + dx[agents[i].path_directions[agents[i].n_cells]];
+        uint8_t new_y = agents[i].y + dy[agents[i].path_directions[agents[i].n_cells]];;
+        (agents[i].n_cells)--;
+
+        //* check if the new position is valid and not occupied by an obstacle or another agent
+        if (_v_is_valid_cell(new_x, new_y, grid) && grid->data[new_x][new_y] != _v_tile) {
+            if (grid->data[new_x][new_y] == _v_free) {
+                //* move the agent to the new position
+                grid->data[agents[i].x][agents[i].y] = _v_free;
+                grid->data[new_x][new_y] = 'a' + i;
+                agents[i].x = new_x;
+                agents[i].y = new_y;
+            } else {
+                //* check if the agent can wait for the other agent to move
+                uint8_t otherAgentIndex = grid->data[new_x][new_y] - 'a';
+                if (agents[otherAgentIndex].path_directions[agents[i].n_cells] == (agents[i].path_directions[agents[i].n_cells] + 2) % 4) {
+                    agents[otherAgentIndex].path_directions[agents[i].n_cells] = 0; //* to stop him from making 1 future move 
+                    //* move the agent to the new position
+                    grid->data[agents[i].x][agents[i].y] = _v_free;
+                    grid->data[new_x][new_y] = 'a' + i;
+                    agents[i].x = new_x;
+                    agents[i].y = new_y;
                 }
             }
         }
     }
 
-    
     return n_agents_left;
 }
 
-
-uint8_t _v_heuristic(uint8_t start_row, uint8_t start_col, uint8_t dest_row, uint8_t dest_col) {
+uint8_t _v_is_cell_occupied(Visualize_grid* grid, uint8_t x, uint8_t y) {
+    return grid->data[x][y] == _v_tile || (grid->data[x][y] >= 'A' && grid->data[x][y] <= 'Z') || (grid->data[x][y] >= 'a' && grid->data[x][y] <= 'z');
+}
+uint8_t _v_heuristic(int8_t start_row, int8_t start_col, int8_t dest_row, int8_t dest_col) {
     return abs(start_row - dest_row) + abs(dest_col - start_col);
 }
 
+int _v_is_valid_cell(int8_t x, int8_t y, Visualize_grid* grid) {
+    return x >= 0 && x < grid->size_x && y >= 0 && y < grid->size_y;
+}
 
 
-int _v_is_space_available_for_tile(visualize_grid* grid, uint8_t x, uint8_t y) {
+int _v_is_space_available_for_tile(Visualize_grid* grid, uint8_t x, uint8_t y) {
     if(grid->data[x][y] == _v_tile) return 0;
 
-    grid->data[x][y] = _v_tile;
+    grid->data[x][y] = _v_tile; //* a bug may occur if later the tile is not placed but in the current implementation that is not a problem
     if(_v_are_spaces_connected(grid)) return 1;
     grid->data[x][y] = _v_free;
 
@@ -288,7 +384,7 @@ uint8_t _v_random(uint8_t max) {
 }
 
 
-void _v_fill(visualize_grid* grid, uint8_t x, uint8_t y) {
+void _v_fill(Visualize_grid* grid, uint8_t x, uint8_t y) {
     if (x < 0 || x >= grid->size_x || y < 0 || y >= grid->size_y) {
         return; // Ignore out-of-bounds cells
     }
@@ -301,7 +397,7 @@ void _v_fill(visualize_grid* grid, uint8_t x, uint8_t y) {
     return;
 };
 
-int _v_are_spaces_connected(visualize_grid* grid) {
+int _v_are_spaces_connected(Visualize_grid* grid) {
     int answer = 1; //* bool
 
     //* get the fist empty space
