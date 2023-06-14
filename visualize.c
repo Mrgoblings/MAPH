@@ -234,7 +234,24 @@ void _v_init_agent(Visualize_grid* grid, Agent* agent) {
     _v_setup_cells(grid, path_weights, manhattan, agent, 0, 0);
 
     agent->n_cells = 0;
+    
+    puts("came from table");
+    for(int j = 0; j < grid->size_y; j++) {
+        for(int i = 0; i < grid->size_x; i++){
+                printf("%d ",path_weights[i][j].came_from);
+        }
+        puts("");
+    }
+    puts("");
+
     for (uint8_t x = agent->dest_x, y = agent->dest_y; x != agent->x || y != agent->y; (agent->n_cells)++) {
+        break;
+        printf("X: %d\n", x);
+        printf("AGENT-X: %d\n", agent->x);
+        printf("Y: %d\n", y);
+        printf("AGENT-Y: %d\n", agent->y);
+
+
         switch (path_weights[x][y].came_from) {
             case 1:
                 y++;
@@ -249,10 +266,9 @@ void _v_init_agent(Visualize_grid* grid, Agent* agent) {
                 x--;
                 break;
         }
-        printf("x-%u y-%u\n",x,y);
-        if (grid->data[x][y] == grid->data[agent->dest_x][agent->dest_y])
-            break;
     }
+
+    printf("n_clels = %d\n", agent->n_cells);
 
     agent->path_directions = malloc(agent->n_cells * sizeof(uint8_t));
 
@@ -274,6 +290,8 @@ void _v_init_agent(Visualize_grid* grid, Agent* agent) {
                 x--;
                 agent->path_directions[i] = 2;
                 break;
+            default:
+                agent->path_directions[i] = 255;
         }
         if (grid->data[x][y] == grid->data[agent->dest_x][agent->dest_y])
             break;
@@ -289,10 +307,15 @@ void _v_init_agent(Visualize_grid* grid, Agent* agent) {
     * down - 3;
     * left - 4;
 */
+
+
 uint8_t _v_setup_cells(Visualize_grid* grid, Cell path_weights[grid->size_x][grid->size_y], uint8_t manhattan[grid->size_x][grid->size_y], Agent* agent, int8_t x, int8_t y) {
+    //TODO problem here
+    
     if(path_weights[x][y].is_visited == 1 || !_v_is_valid_cell(x, y, grid)) return UINT8_MAX;
     if(agent->dest_x == x && agent->dest_y == y) return 0; //* goal
     if(_v_is_cell_occupied(grid, x, y)) return UINT8_MAX;
+
     path_weights[x][y].is_visited = 1;
     Cell best_cell = {0, 0, 1};
     uint8_t curr_weight;
@@ -374,6 +397,19 @@ int8_t v_solve_grid_one_step(Visualize_grid* grid) {
             }
         }
     }
+
+    printf("\n\n%d\n\n", agents[0].n_cells);
+
+    for(int i = 0; i < grid->n_agents; i++) {
+        printf("\nAGENT NAME: %d\n", i);           
+        for(int i_c = 0; i_c < agents[i].n_cells; i_c++) {
+            printf("%d ", agents[i].path_directions[i_c]);
+        }   
+        
+        free(agents[i].path_directions);
+    }
+    puts("");
+
 
     return n_agents_left;
 }
