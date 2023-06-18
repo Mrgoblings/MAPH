@@ -38,14 +38,21 @@ int main() {
 
                 printf("Enter number of tiles for the grid: ");
                 scanf("%hhu", &n_tiles);
-
+                v_free_grid(grid);
                 grid = v_generate_grid(size_x, size_y, n_tiles);
                 break;
             case 2:
-                // printf("Enter file name and place : ");
-                // fgets(input, 100, stdin);
-                // input[strlen(input) - 1] = '\0';
-                grid = v_read_grid("./maps/map_0");
+                int map_number = 0;
+                do{
+                    printf("Enter map number (0-5): ");
+                    scanf("%d", &map_number);
+                } while(map_number < 0 || map_number > 5);
+
+                char map_file[20];
+                sprintf(map_file, "./maps/map_%d", map_number);
+
+                v_free_grid(grid);
+                grid = v_read_grid(map_file);
                 break;
             case 3:
                 if (grid != NULL) {
@@ -75,7 +82,8 @@ int main() {
             default:
                 printf("Invalid choice. Please enter a valid option.\n");
         }
-        v_draw(grid);
+
+        if (grid != NULL) v_draw(grid);
     }
 
     return 0;

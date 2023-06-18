@@ -2,17 +2,16 @@
 
 
 /*
-    * no direction available - 0;
-    * up - 1;
-    * right - 2;
-    * down - 3;
-    * left - 4;
+    * up - 0;
+    * right - 1;
+    * down - 2;
+    * left - 3;
 */
 
 
 typedef struct {
-    uint8_t weight;
-    uint8_t came_from;
+    int weight;
+    uint8_t best_next_direction;
     uint8_t is_visited;
 } Cell;
 
@@ -27,7 +26,7 @@ typedef struct {
 
 
     uint8_t* path_directions;
-    uint8_t n_cells;
+    uint8_t n_cells_left;
 } Agent;
 
 typedef struct {
@@ -65,10 +64,11 @@ uint8_t _v_random(uint8_t max);
 //** validate grid
 int _v_are_spaces_connected(Visualize_grid* grid);
 void _v_fill(Visualize_grid* grid, uint8_t x, uint8_t y);
+void _v_init_agent(Visualize_grid* grid, Agent* agent);
 
 
 //** solving the maze
 uint8_t _v_setup_cells(Visualize_grid* grid, Cell path_weights[grid->size_x][grid->size_y], uint8_t manhattan[grid->size_x][grid->size_y], Agent* agent, int8_t x, int8_t y);
 uint8_t _v_heuristic(int8_t start_row, int8_t start_col, int8_t dest_row, int8_t dest_col);
-int _v_is_valid_cell(int8_t x, int8_t y, Visualize_grid* grid);
+int _v_is_cell_in_grid(int8_t x, int8_t y, Visualize_grid* grid);
 uint8_t _v_is_cell_occupied(Visualize_grid* grid, uint8_t x, uint8_t y);
