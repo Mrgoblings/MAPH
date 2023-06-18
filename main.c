@@ -14,7 +14,7 @@ int main() {
 
     Visualize_grid* grid = NULL;
 
-    int choice;
+    int choice, map_number = 0;;
     uint8_t size_x, size_y, n_tiles;
     char input[100];
     while (1) {
@@ -42,7 +42,6 @@ int main() {
                 grid = v_generate_grid(size_x, size_y, n_tiles);
                 break;
             case 2:
-                int map_number = 0;
                 do{
                     printf("Enter map number (0-5): ");
                     scanf("%d", &map_number);
